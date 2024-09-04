@@ -1,0 +1,40 @@
+export interface ComponentFunction {
+  new (props: Record<string, unknown>): Component;
+  (props: Record<string, unknown>): VirtualElement | string;
+}
+export type VirtualElementType = ComponentFunction | string;
+
+export interface VirtualElementProps {
+  children?: VirtualElement[];
+  [propName: string]: unknown;
+}
+export interface VirtualElement {
+  type: VirtualElementType;
+  props: VirtualElementProps;
+}
+
+export type FiberNodeDOM = Element | Text | null | undefined;
+export interface FiberNode<S = any> extends VirtualElement {
+  alternate: FiberNode<S> | null;
+  dom?: FiberNodeDOM;
+  effectTag?: string;
+  child?: FiberNode;
+  return?: FiberNode;
+  sibling?: FiberNode;
+  hooks?: {
+    state: S;
+    queue: S[];
+  }[];
+}
+
+abstract class Component {
+  props: Record<string, unknown>;
+  abstract state: unknown;
+  abstract setState: (value: unknown) => void;
+  abstract render: () => VirtualElement;
+
+  constructor(props: Record<string, unknown>) {
+    this.props = props;
+  }
+  static REACT_COMPONENT = true;
+}

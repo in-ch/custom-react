@@ -11,6 +11,12 @@ const createTextElement = (text: string): VirtualElement => ({
   },
 });
 
+/**
+ * @param {VirtualElementType} type
+ * @param { Record<string, unknown>?} props
+ * @param {(unknown | VirtualElement)[]} child
+ * @returns {VirtualElement}
+ */
 const createElement = (
   type: VirtualElementType,
   props: Record<string, unknown> = {},
@@ -29,6 +35,12 @@ const createElement = (
   };
 };
 
+/**
+ * @param {HTMLElement | Text} DOM
+ * @param {Record<string, unknown>} prevProps
+ * @param {Record<string, unknown>} nextProps
+ * @returns {void}
+ */
 const updateDOM = (
   DOM: HTMLElement | Text,
   prevProps: Record<string, unknown>,
@@ -59,6 +71,10 @@ const updateDOM = (
   }
 };
 
+/**
+ * @param {VirtualElement} fiberNode
+ * @returns {HTMLElement | Text | null}
+ */
 const createDOM = (fiberNode: VirtualElement): HTMLElement | Text | null => {
   const { type, props } = fiberNode;
   let DOM: HTMLElement | null | Text = null;
@@ -76,6 +92,11 @@ const createDOM = (fiberNode: VirtualElement): HTMLElement | Text | null => {
   return DOM;
 };
 
+/**
+ * @param {VirtualElement} element
+ * @param {HTMLElement | Text | null} element
+ * @returns {HTMLElement | Text | null}
+ */
 const render = (
   element: VirtualElement,
   container: HTMLElement | Text | null

@@ -29,30 +29,37 @@ const createElement = (
   };
 };
 
-const updateDOM = (DOM, prevProps, nextProps) => {
+const updateDOM = (
+  DOM: HTMLElement | Text,
+  prevProps: Record<string, unknown>,
+  nextProps: Record<string, unknown>
+): void => {
   const defaultPropKeys = "children";
 
   for (const [removePropKey, removePropValue] of Object.entries(prevProps)) {
     if (removePropKey.startsWith("on")) {
       DOM.removeEventListener(
-        removePropKey.substr(2).toLowerCase(),
-        removePropValue
+        removePropKey.slice(2).toLowerCase(),
+        removePropValue as EventListener
       );
     } else if (removePropKey !== defaultPropKeys) {
-      DOM[removePropKey] = "";
+      (DOM as any)[removePropKey] = "";
     }
   }
 
   for (const [addPropKey, addPropValue] of Object.entries(nextProps)) {
     if (addPropKey.startsWith("on")) {
-      DOM.addEventListener(addPropKey.substr(2).toLowerCase(), addPropValue);
+      DOM.addEventListener(
+        addPropKey.slice(2).toLowerCase(),
+        addPropValue as EventListener
+      );
     } else if (addPropKey !== defaultPropKeys) {
-      DOM[addPropKey] = addPropValue;
+      (DOM as any)[addPropKey] = addPropValue;
     }
   }
 };
 
-const createDOM = (fiberNode) => {
+const createDOM = (fiberNode: VirtualElement): HTMLElement | Text | null => {
   const { type, props } = fiberNode;
   let DOM: HTMLElement | null | Text = null;
 
@@ -69,7 +76,10 @@ const createDOM = (fiberNode) => {
   return DOM;
 };
 
-const render = (element, container) => {
+const render = (
+  element: VirtualElement,
+  container: HTMLElement | Text | null
+) => {
   const DOM = createDOM(element);
   if (Array.isArray(element.props.children)) {
     for (const child of element.props.children) {
@@ -77,8 +87,10 @@ const render = (element, container) => {
     }
   }
 
-  container.appendChild(DOM);
+  container!.appendChild(DOM!);
 };
 
 const isVirtualElement = (e: unknown): e is VirtualElement =>
   typeof e === "object";
+
+export { createElement, render };

@@ -1,4 +1,7 @@
-import { VirtualElement, VirtualElementType } from "./type";
+import { VirtualElement, VirtualElementType, Fiber } from "@src/type";
+
+let currentFiber: Fiber | null = null;
+const fiberStack: Fiber[] = [];
 
 /**
  * @param {string} text
@@ -101,18 +104,72 @@ const render = (
   element: VirtualElement,
   container: HTMLElement | Text | null
 ): void => {
-  const DOM = createDOM(element);
-  if (DOM && container) {
-    if (Array.isArray(element.props.children)) {
-      for (const child of element.props.children) {
-        render(child as VirtualElement, DOM);
-      }
-    }
-    container.appendChild(DOM);
+  const fiber = createFiber(element);
+  fiberStack.push(fiber);
+  updateFiber(fiber);
+
+  if (container) {
+    container.appendChild(fiber.stateNode!);
   }
+};
+
+/**
+ * @param {VirtualElement} element
+ * @returns {Fiber}
+ */
+const createFiber = (element: VirtualElement): Fiber => {
+  return {
+    stateNode: createDOM(element),
+    props: element.props,
+    type: element.type,
+    children: ((element.props.children as VirtualElement[]) || []).map(
+      createFiber
+    ),
+  };
+};
+
+/**
+ * @param {Fiber} fiber
+ * @returns {void}
+ */
+const updateFiber = (fiber: Fiber): void => {
+  const prevFiber = currentFiber;
+  currentFiber = fiber;
+
+  if (fiber.stateNode) {
+    updateDOM(fiber.stateNode, prevFiber?.props || {}, fiber.props);
+
+    for (const child of fiber.children) {
+      updateFiber(child);
+    }
+  }
+
+  currentFiber = prevFiber;
+};
+
+/**
+ * Custom hook for state management
+ * @param {any} initialState
+ * @returns {[any, Function]}
+ */
+const useState = (initialState: any): [any, Function] => {
+  const fiber = fiberStack[fiberStack.length - 1];
+  let state = (fiber.props as any).state || initialState;
+  const setState = (newState: any) => {
+    if (typeof newState === "function") {
+      newState = newState(state);
+    }
+    state = newState;
+    fiber.props = { ...fiber.props, state };
+    render(
+      fiber as unknown as VirtualElement,
+      fiber.stateNode?.parentNode as HTMLElement
+    );
+  };
+  return [state, setState];
 };
 
 const isVirtualElement = (e: unknown): e is VirtualElement =>
   typeof e === "object" && e !== null && "type" in e && "props" in e;
 
-export { createElement, render };
+export { createElement, render, useState };

@@ -13,18 +13,11 @@ export interface VirtualElement {
   props: VirtualElementProps;
 }
 
-export type FiberNodeDOM = Element | Text | null | undefined;
-export interface FiberNode<S = any> extends VirtualElement {
-  alternate: FiberNode<S> | null;
-  dom?: FiberNodeDOM;
-  effectTag?: string;
-  child?: FiberNode;
-  return?: FiberNode;
-  sibling?: FiberNode;
-  hooks?: {
-    state: S;
-    queue: S[];
-  }[];
+export interface Fiber {
+  stateNode: HTMLElement | Text | null;
+  props: Record<string, unknown>;
+  type: VirtualElementType;
+  children: Fiber[];
 }
 
 abstract class Component {

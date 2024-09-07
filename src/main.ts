@@ -80,7 +80,7 @@ const createDOM = (fiberNode: VirtualElement): HTMLElement | Text | null => {
   let DOM: HTMLElement | null | Text = null;
 
   if (type === "TEXT") {
-    DOM = document.createTextNode("");
+    DOM = document.createTextNode((props.nodeValue as string) || "");
   } else if (typeof type === "string") {
     DOM = document.createElement(type);
   }
@@ -94,24 +94,25 @@ const createDOM = (fiberNode: VirtualElement): HTMLElement | Text | null => {
 
 /**
  * @param {VirtualElement} element
- * @param {HTMLElement | Text | null} element
- * @returns {HTMLElement | Text | null}
+ * @param {HTMLElement | Text | null} container
+ * @returns {void}
  */
 const render = (
   element: VirtualElement,
   container: HTMLElement | Text | null
-) => {
+): void => {
   const DOM = createDOM(element);
-  if (Array.isArray(element.props.children)) {
-    for (const child of element.props.children) {
-      render(child, DOM);
+  if (DOM && container) {
+    if (Array.isArray(element.props.children)) {
+      for (const child of element.props.children) {
+        render(child as VirtualElement, DOM);
+      }
     }
+    container.appendChild(DOM);
   }
-
-  container!.appendChild(DOM!);
 };
 
 const isVirtualElement = (e: unknown): e is VirtualElement =>
-  typeof e === "object";
+  typeof e === "object" && e !== null && "type" in e && "props" in e;
 
 export { createElement, render };

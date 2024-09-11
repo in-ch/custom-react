@@ -20,6 +20,5 @@
     "paths": {
       "@src/*": ["src/*"]
     }
-  },
-  "include": ["src", "example/main.test.js"]
+  }
 }

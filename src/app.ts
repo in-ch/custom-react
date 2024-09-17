@@ -172,4 +172,43 @@ const useState = (initialState: any): [any, Function] => {
 const isVirtualElement = (e: unknown): e is VirtualElement =>
   typeof e === "object" && e !== null && "type" in e && "props" in e;
 
-export { createElement, render, useState };
+/**
+ * Custom hook for side effects (useEffect)
+ * @param {Function} effect - The effect function to run on mount/update
+ * @param {Array<any>} deps - Dependency array to determine when to re-run the effect
+ */
+const useEffect = (effect: Function, deps: any[]) => {
+  const fiber = fiberStack[fiberStack.length - 1];
+
+  // Get previous dependencies from the fiber (stored state)
+  let prevDeps = (fiber.props as any).deps;
+
+  // Check if dependencies have changed
+  const hasChanged = !prevDeps || deps.some((dep, i) => dep !== prevDeps[i]);
+
+  if (hasChanged) {
+    // If dependencies have changed or this is the first render, run the effect
+    const cleanup = fiber.cleanup;
+
+    // If there was a previous cleanup function, call it
+    if (cleanup) {
+      cleanup();
+    }
+
+    // Run the effect and store the cleanup function if returned
+    const newCleanup = effect();
+    fiber.cleanup = newCleanup;
+
+    // Store the current dependencies
+    fiber.props = { ...fiber.props, deps };
+  }
+
+  // Cleanup when the component is unmounted (optional if you track unmounts)
+  return () => {
+    if (fiber.cleanup) {
+      fiber.cleanup();
+    }
+  };
+};
+
+export { createElement, render, useState, useEffect };

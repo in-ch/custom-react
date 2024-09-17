@@ -18,6 +18,8 @@ export interface Fiber {
   props: Record<string, unknown>;
   type: VirtualElementType;
   children: Fiber[];
+  deps?: any[];
+  cleanup?: (() => void) | null;
 }
 
 abstract class Component {

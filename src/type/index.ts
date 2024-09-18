@@ -20,6 +20,7 @@ export interface Fiber {
   children: Fiber[];
   deps?: any[];
   cleanup?: (() => void) | null;
+  state?: any;
 }
 
 abstract class Component {

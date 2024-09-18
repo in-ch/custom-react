@@ -113,17 +113,14 @@ const render = (
   } else {
     console.error("Failed to append child: stateNode is not valid.");
   }
-  if (fiber.children && fiber.children.length > 0) {
-    fiber.children.forEach((childFiber) => {
-      if (childFiber.type === "TEXT") {
-        fiber.stateNode !== null &&
-          fiber.stateNode.appendChild(
-            document.createTextNode(childFiber.props.nodeValue as string)
-          );
-      } else {
-        render(childFiber, fiber.stateNode);
-      }
-    });
+  fiber.children.forEach((childFiber) => {
+    render(childFiber as unknown as VirtualElement, fiber.stateNode);
+  });
+  if (fiber.props?.onClick && fiber.stateNode instanceof HTMLElement) {
+    fiber.stateNode.addEventListener(
+      "click",
+      fiber.props.onClick as EventListenerOrEventListenerObject
+    );
   }
 };
 
@@ -163,8 +160,8 @@ const updateFiber = (fiber: Fiber): void => {
 
 /**
  * Custom hook for state management
- * @param {any} initialState
- * @returns {[any, Function]}
+ * @param {any} initialState - Initial state value
+ * @returns {[any, Function]} - Current state and function to update the state
  */
 const useState = (initialState: any): [any, Function] => {
   const fiber = fiberStack[fiberStack.length - 1];

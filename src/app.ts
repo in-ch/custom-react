@@ -50,28 +50,31 @@ const updateDOM = (
   nextProps: Record<string, unknown>
 ): void => {
   const defaultPropKeys = "children";
-
-  for (const [removePropKey, removePropValue] of Object.entries(prevProps)) {
-    if (removePropKey.startsWith("on")) {
-      DOM.removeEventListener(
-        removePropKey.slice(2).toLowerCase(),
-        removePropValue as EventListener
-      );
-    } else if (removePropKey !== defaultPropKeys) {
-      (DOM as any)[removePropKey] = "";
+  if (DOM instanceof HTMLElement) {
+    // Handle HTMLElement props
+    for (const [removePropKey, removePropValue] of Object.entries(prevProps)) {
+      if (removePropKey.startsWith("on")) {
+        DOM.removeEventListener(
+          removePropKey.slice(2).toLowerCase(),
+          removePropValue as EventListener
+        );
+      } else if (removePropKey !== defaultPropKeys) {
+        (DOM as any)[removePropKey] = "";
+      }
     }
-  }
 
-  for (const [addPropKey, addPropValue] of Object.entries(nextProps)) {
-    if (addPropKey.startsWith("on")) {
-      DOM.addEventListener(
-        addPropKey.slice(2).toLowerCase(),
-        addPropValue as EventListener
-      );
-    } else if (addPropKey !== defaultPropKeys) {
-      (DOM as any)[addPropKey] = addPropValue;
+    for (const [addPropKey, addPropValue] of Object.entries(nextProps)) {
+      if (addPropKey.startsWith("on")) {
+        DOM.addEventListener(
+          addPropKey.slice(2).toLowerCase(),
+          addPropValue as EventListener
+        );
+      } else if (addPropKey !== defaultPropKeys) {
+        (DOM as any)[addPropKey] = addPropValue;
+      }
     }
-  }
+  } else if (DOM instanceof Text)
+    (DOM as Text).nodeValue = (nextProps.nodeValue as string) || "";
 };
 
 /**
@@ -81,17 +84,14 @@ const updateDOM = (
 const createDOM = (fiberNode: VirtualElement): HTMLElement | Text | null => {
   const { type, props } = fiberNode;
   let DOM: HTMLElement | null | Text = null;
-
   if (type === "TEXT") {
     DOM = document.createTextNode((props.nodeValue as string) || "");
   } else if (typeof type === "string") {
     DOM = document.createElement(type);
   }
-
-  if (DOM !== null) {
+  if (DOM) {
     updateDOM(DOM, {}, props);
   }
-
   return DOM;
 };
 
@@ -104,12 +104,26 @@ const render = (
   element: VirtualElement,
   container: HTMLElement | Text | null
 ): void => {
+  if (!container) return;
   const fiber = createFiber(element);
   fiberStack.push(fiber);
   updateFiber(fiber);
-
-  if (container) {
-    container.appendChild(fiber.stateNode!);
+  if (fiber.stateNode && container instanceof HTMLElement) {
+    container.appendChild(fiber.stateNode);
+  } else {
+    console.error("Failed to append child: stateNode is not valid.");
+  }
+  if (fiber.children && fiber.children.length > 0) {
+    fiber.children.forEach((childFiber) => {
+      if (childFiber.type === "TEXT") {
+        fiber.stateNode !== null &&
+          fiber.stateNode.appendChild(
+            document.createTextNode(childFiber.props.nodeValue as string)
+          );
+      } else {
+        render(childFiber, fiber.stateNode);
+      }
+    });
   }
 };
 
@@ -179,31 +193,17 @@ const isVirtualElement = (e: unknown): e is VirtualElement =>
  */
 const useEffect = (effect: Function, deps: any[]) => {
   const fiber = fiberStack[fiberStack.length - 1];
-
-  // Get previous dependencies from the fiber (stored state)
   let prevDeps = (fiber.props as any).deps;
-
-  // Check if dependencies have changed
   const hasChanged = !prevDeps || deps.some((dep, i) => dep !== prevDeps[i]);
-
   if (hasChanged) {
-    // If dependencies have changed or this is the first render, run the effect
     const cleanup = fiber.cleanup;
-
-    // If there was a previous cleanup function, call it
     if (cleanup) {
       cleanup();
     }
-
-    // Run the effect and store the cleanup function if returned
     const newCleanup = effect();
     fiber.cleanup = newCleanup;
-
-    // Store the current dependencies
     fiber.props = { ...fiber.props, deps };
   }
-
-  // Cleanup when the component is unmounted (optional if you track unmounts)
   return () => {
     if (fiber.cleanup) {
       fiber.cleanup();

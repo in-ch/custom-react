@@ -125,6 +125,17 @@ const render = (
 };
 
 /**
+ * @param {number} index target Fiber Node's index
+ * @param {number} newState new state value
+ * @returns {void}
+ */
+const reRender = (index: number, newState: any): void => {
+  fiberStack[index].props.state = newState;
+  fiberStack[index].stateNode?.remove();
+  render(fiberStack[index], fiberStack[index].state);
+};
+
+/**
  * @param {VirtualElement} element
  * @returns {Fiber}
  */
@@ -146,15 +157,12 @@ const createFiber = (element: VirtualElement): Fiber => {
 const updateFiber = (fiber: Fiber): void => {
   const prevFiber = currentFiber;
   currentFiber = fiber;
-
   if (fiber.stateNode) {
     updateDOM(fiber.stateNode, prevFiber?.props || {}, fiber.props);
-
     for (const child of fiber.children) {
       updateFiber(child);
     }
   }
-
   currentFiber = prevFiber;
 };
 
@@ -170,14 +178,15 @@ const useState = (initialState: any): [any, Function] => {
     if (typeof newState === "function") {
       newState = newState(state);
     }
+    const index = findStateIndex(state);
     state = newState;
-    fiber.props = { ...fiber.props, state };
-    render(
-      fiber as unknown as VirtualElement,
-      fiber.stateNode?.parentNode as HTMLElement
-    );
+    reRender(index, newState);
   };
   return [state, setState];
+};
+
+const findStateIndex = (state: string) => {
+  return fiberStack.findIndex((_fiber) => _fiber.props.state === state);
 };
 
 const isVirtualElement = (e: unknown): e is VirtualElement =>
